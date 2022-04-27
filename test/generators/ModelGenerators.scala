@@ -16,8 +16,13 @@
 
 package generators
 
-import models.LocalReferenceNumber
+import models.MessageType.{Amendment, Submission}
+import models.{CorrelationId, LocalReferenceNumber, MessageType, MovementReferenceNumber, Outcome, RejectionReason}
+import models.Outcome.{Accepted, Rejected}
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Arbitrary, Gen}
+
+import java.time.Instant
 
 trait ModelGenerators {
 
@@ -27,5 +32,63 @@ trait ModelGenerators {
         numChars <- Gen.choose(1, 22)
         chars <- Gen.listOfN(numChars, Gen.alphaNumChar)
       } yield LocalReferenceNumber(chars.mkString)
+    }
+
+  implicit lazy val arbitraryCorrelationId: Arbitrary[CorrelationId] =
+    Arbitrary {
+      Gen.numStr.map(CorrelationId.apply)
+    }
+
+  implicit lazy val arbitraryMessageType: Arbitrary[MessageType] =
+    Arbitrary{
+      Gen.oneOf(Gen.const(Submission), Gen.const(Amendment))
+    }
+
+  implicit lazy val arbitraryInstant: Arbitrary[Instant] =
+    Arbitrary {
+      Gen.choose(Instant.MIN, Instant.MAX)
+    }
+
+  implicit lazy val arbitraryMrn: Arbitrary[MovementReferenceNumber] =
+    Arbitrary {
+      for {
+        yearDigits <- Gen.choose(22, 99).map(_.toString)
+        nextDigits <- Gen.listOfN(2, Gen.numChar).map(_.mkString)
+        finalDigits <- Gen.listOfN(12, Gen.numChar).map(_.mkString)
+      } yield MovementReferenceNumber(s"${yearDigits}GB${nextDigits}I${finalDigits}")
+    }
+
+  implicit lazy val arbitraryAcceptedOutcome: Arbitrary[Accepted] =
+    Arbitrary {
+      for {
+        correlationId <- arbitrary[CorrelationId]
+        messageType <- arbitrary[MessageType]
+        instant <- arbitrary[Instant]
+        mrn <- arbitrary[MovementReferenceNumber]
+      } yield Accepted(correlationId, messageType, instant, mrn)
+    }
+
+  implicit lazy val arbitraryRejectionReason: Arbitrary[RejectionReason] = {
+    Arbitrary {
+      for {
+        code <- Gen.option(Gen.choose(1000, 9000))
+        desc <- arbitrary[String]
+      } yield RejectionReason(code, desc)
+    }
+  }
+
+  implicit lazy val arbitraryRejectedOutcome: Arbitrary[Rejected] =
+    Arbitrary {
+      for {
+        correlationId <- arbitrary[CorrelationId]
+        messageType <- arbitrary[MessageType]
+        instant <- arbitrary[Instant]
+        reason <- arbitrary[RejectionReason]
+      } yield Rejected(correlationId, messageType, instant, reason)
+    }
+
+  implicit lazy val arbitraryOutcome: Arbitrary[Outcome] =
+    Arbitrary{
+      Gen.oneOf(arbitrary[Accepted], arbitrary[Rejected])
     }
 }
