@@ -30,7 +30,7 @@ class OutcomeSpec
     with ScalaCheckPropertyChecks
     with ModelGenerators {
 
-  "must serialise and deserialise as Accepted" in {
+  "must serialise and deserialise symmetrically as Accepted" in {
 
     forAll(arbitrary[Accepted]) {
       accepted =>
@@ -38,7 +38,7 @@ class OutcomeSpec
     }
   }
 
-  "must serialise and deserialise as Rejected" in {
+  "must serialise and deserialise symmetrically as Rejected" in {
 
     forAll(arbitrary[Rejected]) {
       rejected =>

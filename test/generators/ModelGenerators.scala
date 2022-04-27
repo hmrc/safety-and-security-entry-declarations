@@ -17,8 +17,8 @@
 package generators
 
 import models.MessageType.{Amendment, Submission}
-import models.{CorrelationId, LocalReferenceNumber, MessageType, MovementReferenceNumber, Outcome, RejectionReason}
 import models.Outcome.{Accepted, Rejected}
+import models._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -42,11 +42,6 @@ trait ModelGenerators {
   implicit lazy val arbitraryMessageType: Arbitrary[MessageType] =
     Arbitrary{
       Gen.oneOf(Gen.const(Submission), Gen.const(Amendment))
-    }
-
-  implicit lazy val arbitraryInstant: Arbitrary[Instant] =
-    Arbitrary {
-      Gen.choose(Instant.MIN, Instant.MAX)
     }
 
   implicit lazy val arbitraryMrn: Arbitrary[MovementReferenceNumber] =
@@ -90,5 +85,13 @@ trait ModelGenerators {
   implicit lazy val arbitraryOutcome: Arbitrary[Outcome] =
     Arbitrary{
       Gen.oneOf(arbitrary[Accepted], arbitrary[Rejected])
+    }
+
+  implicit lazy val arbitraryDeclarationEvent: Arbitrary[DeclarationEvent] =
+    Arbitrary {
+      for {
+        messageType <- arbitrary[MessageType]
+        outcome <- Gen.option(arbitrary[Outcome])
+      } yield DeclarationEvent(messageType, outcome)
     }
 }

@@ -25,13 +25,13 @@ class MessageTypeSpec extends AnyFreeSpec with Matchers {
 
   "MessageType" - {
 
-    "must serialise and deserialise as a Submission" in {
+    "must serialise and deserialise symmetrically as a Submission" in {
 
       val json = Json.toJson(Submission: MessageType)
       json.validate[MessageType] mustEqual JsSuccess(Submission)
     }
 
-    "must serialise and deserialise as an Amendment" in {
+    "must serialise and deserialise symmetrically as an Amendment" in {
 
       val json = Json.toJson(Amendment: MessageType)
       json.validate[MessageType] mustEqual JsSuccess(Amendment)

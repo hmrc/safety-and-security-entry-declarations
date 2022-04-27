@@ -54,7 +54,7 @@ class LocalReferenceNumberSpec
         .value mustEqual "Invalid Local Reference Number"
     }
 
-    "must serialise and deserialise to/from a JsString of the inner value" in {
+    "must serialise and deserialise symmetrically to/from a JsString of the inner value" in {
 
       forAll(arbitrary[LocalReferenceNumber]) { lrn =>
 
