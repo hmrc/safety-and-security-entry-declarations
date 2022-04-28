@@ -36,7 +36,7 @@ trait ModelGenerators {
 
   implicit lazy val arbitraryCorrelationId: Arbitrary[CorrelationId] =
     Arbitrary {
-      Gen.numStr.map(CorrelationId.apply)
+      Gen.numStr.suchThat(_.nonEmpty).map(CorrelationId.apply)
     }
 
   implicit lazy val arbitraryMessageType: Arbitrary[MessageType] =

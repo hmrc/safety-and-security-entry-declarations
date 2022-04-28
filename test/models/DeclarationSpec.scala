@@ -17,6 +17,7 @@
 package models
 
 import generators.ModelGenerators
+import models.MessageType.{Amendment, Submission}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
@@ -65,16 +66,43 @@ class DeclarationSpec
 
   ".withDeclarationEvent" - {
 
-    "must return the same Declaration with a new event added to the map" in {
+    "must set an event when there are none originally" in {
 
-      forAll(declarationGen, arbitrary[CorrelationId], arbitrary[DeclarationEvent]) {
-        case (declaration, correlationId, newEvent) =>
+      val declaration = Declaration(
+        eori = "123456789000",
+        lrn = LocalReferenceNumber("ABC"),
+        data = Json.obj("foo" -> "bar")
+      )
+      val correlationId = CorrelationId("1")
+      val event = DeclarationEvent(Submission, None)
 
-          val result = declaration.withDeclarationEvent(correlationId, newEvent)
+      val result = declaration.withDeclarationEvent(correlationId, event)
 
-          result.declarationEvents.get(correlationId).value mustEqual newEvent
-          result.declarationEvents - correlationId mustEqual declaration.declarationEvents
-      }
+      result.declarationEvents.get(correlationId).value mustEqual event
+    }
+
+    "must add an event when there are already some events" in {
+
+      val correlationId1 = CorrelationId("1")
+      val event1 = DeclarationEvent(Submission, None)
+      val correlationId2 = CorrelationId("2")
+      val event2 = DeclarationEvent(Amendment, None)
+
+      val declaration = Declaration(
+        eori = "123456789000",
+        lrn = LocalReferenceNumber("ABC"),
+        data = Json.obj("foo" -> "bar"),
+        declarationEvents = Map(
+          correlationId1 -> event1
+        )
+      )
+
+      val result = declaration.withDeclarationEvent(correlationId2, event2)
+
+      result.declarationEvents mustEqual Map(
+        correlationId1 -> event1,
+        correlationId2 -> event2
+      )
     }
   }
 }
