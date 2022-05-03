@@ -19,7 +19,7 @@ package controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlMatching}
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import models.{CorrelationId, Declaration, DeclarationEvent, LocalReferenceNumber, MessageType, SaveDeclarationEventRequest, SubmitDeclarationRequest}
+import models.{CorrelationId, Declaration, DeclarationEvent, LocalReferenceNumber, MessageType, RequestDeclarationEvent, SaveDeclarationEventRequest, SubmitDeclarationRequest}
 import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Injecting
@@ -72,9 +72,29 @@ class DeclarationsControllerISpec extends IntegrationBaseSpec with Injecting wit
         )
     )
   }
+
+  def unexpectedFailingAuthMock(): StubMapping = {
+    wireMockServer.stubFor(
+      post(urlMatching("/auth/authorise"))
+        .willReturn(
+          aResponse()
+            .withStatus(503)
+            .withBody(successfulAuthResponse().toString)
+            .withHeader("Content-type", "Application/json")
+        )
+    )
+  }
+
   val successRequestBodySubmit: SubmitDeclarationRequest = SubmitDeclarationRequest(
     JsObject(Seq("test"->JsString("string"))),
     None
+  )
+
+  val successRequestBodySubmitWithDeclaration: SubmitDeclarationRequest = SubmitDeclarationRequest(
+    JsObject(Seq("test"->JsString("string"))),
+    Some(Seq(
+      RequestDeclarationEvent(CorrelationId("1"), DeclarationEvent(MessageType.Submission, None))
+    ))
   )
 
   val successRequestBodySaveEvent: SaveDeclarationEventRequest = SaveDeclarationEventRequest(
@@ -98,7 +118,7 @@ class DeclarationsControllerISpec extends IntegrationBaseSpec with Injecting wit
 
       val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn")
           .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
-          .post[JsValue](Json.toJson(successRequestBodySubmit)))
+          .post[JsValue](Json.toJson(successRequestBodySubmitWithDeclaration)))
 
       result.body mustBe ""
       result.status mustBe 201
@@ -138,6 +158,19 @@ class DeclarationsControllerISpec extends IntegrationBaseSpec with Injecting wit
       result.status mustBe 401
 
       result.body mustBe "{\"code\":\"MISSING_SS_ENROLMENT\",\"message\":\"The consumer does not have the required authorisation to make this request\"}"
+    }
+
+    "return 401 if auth encounters an issue" in {
+
+      unexpectedFailingAuthMock()
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> "Bearer dummyBearer")
+        .post[JsValue](Json.toJson(successRequestBodySubmit.copy(data = JsObject(Seq("updatedTest"->JsString("updatedString")))))))
+
+      result.status mustBe 401
+
+      result.body mustBe "{\"code\":\"UNAUTHORISED\",\"message\":\"The consumer does not have the required authorisation to make this request\"}"
     }
   }
 

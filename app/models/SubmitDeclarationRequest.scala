@@ -16,10 +16,7 @@
 
 package models
 
-import play.api.libs.json.{JsObject, JsResult, JsSuccess, JsValue, Json, OFormat, OWrites, Reads, Writes, __}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-
-import java.time.Instant
+import play.api.libs.json.{JsObject, Json, OFormat}
 
 case class SubmitDeclarationRequest(
                         data: JsObject,

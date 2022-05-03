@@ -18,7 +18,7 @@ package controllers
 
 
 import controllers.actions.IdentifierAction
-import models.{APIError, InvalidRequestBody, Outcome, SaveDeclarationEventRequest, SubmitDeclarationRequest}
+import models.{APIError, InvalidRequestBody, Outcome, SaveDeclarationEventRequest}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import services.DeclarationsService

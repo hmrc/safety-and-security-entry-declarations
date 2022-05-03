@@ -179,7 +179,6 @@ Http Code | error code | error message
 -------- |------- |  ---
 400 | INVALID_REQUEST | The request body did not match the format expected
 400 | INVALID_LRN | The provided LocalReferenceNumber did not match the expected format
-503 | UNKNOWN_ERROR | An unexpected error occurred trying to insert the given document
 401 | MISSING_SS_ENROLMENT | The consumer does not have the required authorisation to make this request
 401 | UNAUTHORISED | The consumer does not have the required authorisation to make this request"
 404 | DECLARATION_NOT_FOUND | The request tried to update a record that doesn't exist

@@ -16,9 +16,8 @@
 
 package services
 
-import models.{APIError, CorrelationId, Declaration, DeclarationEvent, DeclarationNotfound, InvalidLocalReferenceNumber, LocalReferenceNumber, Outcome, SaveDeclarationEventRequest, SubmitDeclarationRequest}
+import models._
 import repositories.DeclarationRepository
-import uk.gov.hmrc.http.HeaderCarrier
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,7 +33,7 @@ class DeclarationsService @Inject()(
     )
   }
 
-  def getDeclarations(eori: String)(implicit ec: ExecutionContext): Future[Seq[Declaration]] = {
+  def getDeclarations(eori: String): Future[Seq[Declaration]] = {
     declarationRepository.get(eori)
   }
 

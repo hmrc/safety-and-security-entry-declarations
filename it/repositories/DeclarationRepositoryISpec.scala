@@ -16,11 +16,14 @@
 
 package repositories
 
-import models.{CorrelationId, Declaration, DeclarationEvent, DeclarationNotfound, LocalReferenceNumber, MessageType}
+import models.Outcome.Accepted
+import models.{CorrelationId, Declaration, DeclarationEvent, DeclarationEventNotFound, DeclarationNotfound, LocalReferenceNumber, MessageType, MovementReferenceNumber}
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsString}
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+
+import java.time.Instant
 
 class DeclarationRepositoryISpec extends PlaySpec with FutureAwaits with DefaultAwaitTimeout with DefaultPlayMongoRepositorySupport[Declaration] {
 
@@ -84,7 +87,7 @@ class DeclarationRepositoryISpec extends PlaySpec with FutureAwaits with Default
 
       val result = await(repository.insertEvent("GB205672212000", LocalReferenceNumber("LocalReference1"), CorrelationId("correlation1"), DeclarationEvent(MessageType.Amendment, None)))
 
-      result mustBe Right()
+      result mustBe Right(())
 
       val dbDocument = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference1")))
 
@@ -97,7 +100,7 @@ class DeclarationRepositoryISpec extends PlaySpec with FutureAwaits with Default
 
       val result = await(repository.insertEvent("GB205672212000", LocalReferenceNumber("LocalReference1"), CorrelationId("correlation2"), DeclarationEvent(MessageType.Submission, None)))
 
-      result mustBe Right()
+      result mustBe Right(())
 
       val dbDocument = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference1")))
 
@@ -108,6 +111,45 @@ class DeclarationRepositoryISpec extends PlaySpec with FutureAwaits with Default
       val result = await(repository.insertEvent("GB205672212000", LocalReferenceNumber("LocalReference1"), CorrelationId("correlation2"), DeclarationEvent(MessageType.Submission, None)))
 
       result mustBe Left(DeclarationNotfound)
+    }
+
+  }
+
+  ".setOutcome" should {
+    "Set an outcome for an existing declaration event" in {
+      val preTestSetup = await(repository.upsert(declaration))
+      preTestSetup mustBe Right(())
+
+      val preTestDeclaration = await(repository.insertEvent("GB205672212000", LocalReferenceNumber("LocalReference1"), CorrelationId("correlation1"), DeclarationEvent(MessageType.Amendment, None)))
+
+      preTestDeclaration mustBe Right(())
+
+      val outcome = Accepted(CorrelationId("correlation1"), MessageType.Submission, Instant.now(), MovementReferenceNumber("123"))
+      val result = await(repository.setOutcome("GB205672212000", LocalReferenceNumber("LocalReference1"), outcome))
+
+      result mustBe Right(())
+
+      val dbDocument = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference1")))
+      dbDocument.get.declarationEvents.head mustBe (CorrelationId("correlation1")-> DeclarationEvent(MessageType.Amendment, Some(outcome)))
+    }
+
+    "return an error for an eori and lrn that don't exist" in {
+      val outcome = Accepted(CorrelationId("correlation1"), MessageType.Submission, Instant.now(), MovementReferenceNumber("123"))
+      val result = await(repository.setOutcome("GB205672212000", LocalReferenceNumber("LocalReference1"), outcome))
+
+      result mustBe Left(DeclarationNotfound)
+    }
+
+    "Return an error if the specified declaration doesn't exist" in {
+      val preTestSetup = await(repository.upsert(declaration))
+      preTestSetup mustBe Right(())
+
+      val preTestDeclaration = await(repository.insertEvent("GB205672212000", LocalReferenceNumber("LocalReference1"), CorrelationId("correlation1"), DeclarationEvent(MessageType.Amendment, None)))
+
+      preTestDeclaration mustBe Right(())
+      val result = await(repository.setOutcome("GB205672212000", LocalReferenceNumber("LocalReference1"), Accepted(CorrelationId("someOtherCorrelation"), MessageType.Submission, Instant.now(), MovementReferenceNumber("123"))))
+
+      result mustBe Left(DeclarationEventNotFound)
     }
 
   }

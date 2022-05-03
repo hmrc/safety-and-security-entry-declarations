@@ -16,17 +16,14 @@
 
 package models
 
-import play.api.libs.json.{JsPath, Writes}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{Writes, _}
+import play.api.libs.json.{JsPath, Writes}
 
 sealed class APIError(val httpCode: Int, val errorCode: String, val message: String)
 
 case object InvalidRequestBody extends APIError(400, "INVALID_REQUEST", "The request body did not match the format expected")
 
 case object InvalidLocalReferenceNumber extends APIError(400, "INVALID_LRN", "The provided LocalReferenceNumber did not match the expected format")
-
-case object UnknownErrorInsertingRecord extends APIError(503, "UNKNOWN_ERROR", "An unexpected error occurred trying to insert the given document")
 
 case object MissingSSEnrolment extends APIError(401, "MISSING_SS_ENROLMENT", "The consumer does not have the required authorisation to make this request")
 

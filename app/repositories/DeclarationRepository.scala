@@ -16,7 +16,7 @@
 
 package repositories
 
-import models.{APIError, CorrelationId, Declaration, DeclarationEvent, DeclarationNotfound, LocalReferenceNumber, Outcome, UnknownErrorInsertingRecord}
+import models._
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
@@ -78,9 +78,6 @@ class DeclarationRepository @Inject() (
       replacement = declaration,
       options = new ReplaceOptions().upsert(true)
     ).toFuture().map(_ => Right(()))
-      .recover {
-        case _ => Left(UnknownErrorInsertingRecord)
-      }
   }
 
   def setOutcome(eori: String, lrn: LocalReferenceNumber, outcome: Outcome): Future[Either[APIError, Unit]] = {
