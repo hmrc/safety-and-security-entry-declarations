@@ -32,8 +32,6 @@ case object MissingSSEnrolment extends APIError(401, "MISSING_SS_ENROLMENT", "Th
 
 case object Unauthorised extends APIError(401, "UNAUTHORISED", "The consumer does not have the required authorisation to make this request")
 
-case object EORIMismatch extends APIError(401, "EORI_MISMATCH", "The request contains an EORI number that the consumer is not enrolled for")
-
 case object DeclarationNotfound extends APIError(404, "DECLARATION_NOT_FOUND", "The request tried to update a record that doesn't exist")
 
 case object DeclarationEventNotFound extends APIError(404, "DECLARATION_EVENT_NOT_FOUND", "The request tried to update a record that doesn't exist")

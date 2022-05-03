@@ -18,6 +18,7 @@ package models
 
 import generators.ModelGenerators
 import models.MessageType.{Amendment, Submission}
+import models.Outcome.Accepted
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
@@ -26,7 +27,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json.{JsSuccess, Json}
 
-import java.time.{LocalDate, ZoneOffset}
+import java.time.{Instant, LocalDate, ZoneOffset}
 
 class DeclarationSpec
   extends AnyFreeSpec
@@ -103,6 +104,55 @@ class DeclarationSpec
         correlationId1 -> event1,
         correlationId2 -> event2
       )
+    }
+  }
+
+  ".withOutcome" - {
+
+    "must set an outcome where the was an event with the same correlationId" in {
+
+      val correlationId = CorrelationId("1")
+      val event = DeclarationEvent(Submission, None)
+      val declaration = Declaration(
+        eori = "123456789000",
+        lrn = LocalReferenceNumber("ABC"),
+        data = Json.obj("foo" -> "bar"),
+        declarationEvents = Map(correlationId -> event)
+      )
+
+      val outcome = Accepted(
+        correlationId,
+        Submission,
+        Instant.now(),
+        MovementReferenceNumber("111")
+      )
+
+      val result = declaration.withOutcome(outcome)
+
+      result.right.get.declarationEvents.get(correlationId).value.outcome mustEqual Some(outcome)
+    }
+
+    "must return an error when a matching correlationId isn't found" in {
+      val correlationId = CorrelationId("1")
+      val event = DeclarationEvent(Submission, None)
+      val declaration = Declaration(
+        eori = "123456789000",
+        lrn = LocalReferenceNumber("ABC"),
+        data = Json.obj("foo" -> "bar"),
+        declarationEvents = Map(correlationId -> event)
+      )
+
+      val outcome = Accepted(
+        CorrelationId("2"),
+        Submission,
+        Instant.now(),
+        MovementReferenceNumber("111")
+      )
+
+      val result = declaration.withOutcome(outcome)
+
+
+      result mustEqual Left(DeclarationEventNotFound)
     }
   }
 }

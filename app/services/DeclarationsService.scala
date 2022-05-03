@@ -26,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class DeclarationsService @Inject()(
                                      declarationRepository: DeclarationRepository
                                    ){
-  def submitDeclaration(submitDeclarationRequest: SubmitDeclarationRequest, eori: String, lrn: String)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Either[APIError, Unit]] = {
+  def submitDeclaration(submitDeclarationRequest: SubmitDeclarationRequest, eori: String, lrn: String)(implicit ec: ExecutionContext): Future[Either[APIError, Unit]] = {
     LocalReferenceNumber.fromString(lrn).fold[Future[Either[APIError, Unit]]](
       Future(Left(InvalidLocalReferenceNumber))
     )(localReferenceNumber =>
@@ -34,11 +34,11 @@ class DeclarationsService @Inject()(
     )
   }
 
-  def getDeclarations(eori: String)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Seq[Declaration]] = {
+  def getDeclarations(eori: String)(implicit ec: ExecutionContext): Future[Seq[Declaration]] = {
     declarationRepository.get(eori)
   }
 
-  def getDeclaration(eori: String, lrn: String)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Either[APIError, Declaration]] = {
+  def getDeclaration(eori: String, lrn: String)(implicit ec: ExecutionContext): Future[Either[APIError, Declaration]] = {
     LocalReferenceNumber.fromString(lrn).fold[Future[Either[APIError, Declaration]]](
       Future(Left(InvalidLocalReferenceNumber))
     )(localReferenceNumber =>
@@ -46,7 +46,7 @@ class DeclarationsService @Inject()(
     )
   }
 
-  def setOutcome(eori: String, lrn: String, outcome: Outcome)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Either[APIError, Unit]] = {
+  def setOutcome(eori: String, lrn: String, outcome: Outcome)(implicit ec: ExecutionContext): Future[Either[APIError, Unit]] = {
     LocalReferenceNumber.fromString(lrn).fold[Future[Either[APIError, Unit]]](
       Future(Left(InvalidLocalReferenceNumber))
     )(localReferenceNumber =>
@@ -54,7 +54,7 @@ class DeclarationsService @Inject()(
     )
   }
 
-  def saveDeclarationEvent(saveDeclarationEventRequest: SaveDeclarationEventRequest, eori: String, lrn: String)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Either[APIError, Unit]] = {
+  def saveDeclarationEvent(saveDeclarationEventRequest: SaveDeclarationEventRequest, eori: String, lrn: String)(implicit ec: ExecutionContext): Future[Either[APIError, Unit]] = {
     LocalReferenceNumber.fromString(lrn).fold[Future[Either[APIError, Unit]]](
       Future(Left(InvalidLocalReferenceNumber))
     )(localReferenceNumber =>
