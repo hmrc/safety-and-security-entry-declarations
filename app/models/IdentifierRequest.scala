@@ -14,16 +14,8 @@
  * limitations under the License.
  */
 
-package config
+package models
 
-import play.api.Configuration
+import play.api.mvc.{Request, WrappedRequest}
 
-import javax.inject.{Inject, Singleton}
-
-@Singleton
-class AppConfig @Inject()(config: Configuration) {
-
-  val appName: String = config.get[String]("appName")
-  val enrolment: String = config.get[String]("enrolment")
-  val eoriNumber: String = config.get[String]("eoriNumber")
-}
+case class IdentifierRequest[A](request: Request[A], eori: String) extends WrappedRequest[A](request)

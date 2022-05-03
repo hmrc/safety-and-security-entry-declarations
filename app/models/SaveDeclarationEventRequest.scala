@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package controllers
+package models
 
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.libs.json.{JsObject, JsResult, JsSuccess, JsValue, Json, OFormat, OWrites, Reads, Writes, __}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+import java.time.Instant
 
-@Singleton()
-class MicroserviceHelloWorldController @Inject()(cc: ControllerComponents)
-    extends BackendController(cc) {
+case class SaveDeclarationEventRequest(correlationId: CorrelationId, messageType: MessageType, outcome: Option[Outcome] = None)
 
-  def hello(): Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Ok("Hello world"))
-  }
+
+object SaveDeclarationEventRequest {
+  implicit val formats: OFormat[SaveDeclarationEventRequest] = Json.format[SaveDeclarationEventRequest]
 }

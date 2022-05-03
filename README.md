@@ -1,7 +1,7 @@
 
 # safety-and-security-entry-declarations
 
-This is a placeholder README.md for a new repository
+This is a placeholder README.md for a new repositories
 
 ### License
 
