@@ -112,4 +112,71 @@ class DeclarationRepositoryISpec extends PlaySpec with FutureAwaits with Default
 
   }
 
+  ".get (by EORI)" should {
+    "return a list containing a single declaration if it's the only one stored that matches the input EORI" in {
+      val preTestSetup1 = await(repository.upsert(declaration))
+      val preTestSetup2 = await(repository.upsert(declaration.copy(eori = "GB205672212001")))
+      preTestSetup1 mustBe Right(())
+      preTestSetup2 mustBe Right(())
+
+      val result = await(repository.get("GB205672212000"))
+
+      result mustBe Seq(declaration)
+    }
+
+    "return a list containing multiple declarations that match the input EORI" in {
+      val preTestSetup1 = await(repository.upsert(declaration))
+      val preTestSetup2 = await(repository.upsert(declaration.copy(eori = "GB205672212001")))
+      val preTestSetup3 = await(repository.upsert(declaration.copy(lrn = LocalReferenceNumber("LocalReference2"))))
+      val preTestSetup4 = await(repository.upsert(declaration.copy(lrn = LocalReferenceNumber("LocalReference3"))))
+      preTestSetup1 mustBe Right(())
+      preTestSetup2 mustBe Right(())
+      preTestSetup3 mustBe Right(())
+      preTestSetup4 mustBe Right(())
+
+      val result = await(repository.get("GB205672212000"))
+
+      result mustBe Seq(
+        declaration,
+        declaration.copy(lrn = LocalReferenceNumber("LocalReference2")),
+        declaration.copy(lrn = LocalReferenceNumber("LocalReference3"))
+      )
+    }
+
+    "return an empty list list if no stored declarations match the input EORI" in {
+      val preTestSetup1 = await(repository.upsert(declaration))
+      val preTestSetup2 = await(repository.upsert(declaration.copy(eori = "GB205672212001")))
+      preTestSetup1 mustBe Right(())
+      preTestSetup2 mustBe Right(())
+
+      val result = await(repository.get("GB205672212002"))
+
+      result mustBe List.empty
+    }
+  }
+
+  ".get (by EORI & LRN)" should {
+    "return a declaration that matches the input EORI & LRN" in {
+      val preTestSetup1 = await(repository.upsert(declaration))
+      val preTestSetup2 = await(repository.upsert(declaration.copy(eori = "GB205672212001")))
+      preTestSetup1 mustBe Right(())
+      preTestSetup2 mustBe Right(())
+
+      val result = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference1")))
+
+      result mustBe Some(declaration)
+    }
+
+    "return an error if a matching declaration is not found" in {
+      val preTestSetup1 = await(repository.upsert(declaration))
+      val preTestSetup2 = await(repository.upsert(declaration.copy(eori = "GB205672212001")))
+      preTestSetup1 mustBe Right(())
+      preTestSetup2 mustBe Right(())
+
+      val result = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference2")))
+
+      result mustBe None
+    }
+  }
+
 }

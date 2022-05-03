@@ -20,7 +20,7 @@ package controllers
 import controllers.actions.IdentifierAction
 import models.{APIError, InvalidRequestBody, SubmitDeclarationRequest}
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
 import services.DeclarationsService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
@@ -45,6 +45,26 @@ class DeclarationsController @Inject()(
             case Left(error) => Status(error.httpCode)(Json.toJson(error))
           }
       })
+    }
+  }
+
+  def getDeclaration(eori: String, lrn: String): Action[AnyContent] = Action.async { implicit request =>
+    authAction.withAuthAndEnrolmentCheck[AnyContent](eori){ _ =>
+        declarationsService.getDeclaration(eori, lrn).map {
+          case Right(declaration) => Ok(Json.toJson(declaration))
+          case Left(error) => Status(error.httpCode)(Json.toJson(error))
+        }
+    }
+  }
+
+  def getDeclarations(eori: String): Action[AnyContent] = Action.async { implicit request =>
+    authAction.withAuthAndEnrolmentCheck[AnyContent](eori){ _ =>
+      declarationsService.getDeclarations(eori).map { declarations =>
+        if(declarations.isEmpty)
+          NoContent
+        else
+          Ok(Json.toJson(declarations))
+      }
     }
   }
 }

@@ -141,26 +141,36 @@ class DeclarationsControllerISpec extends IntegrationBaseSpec with Injecting wit
     }
   }
 
-
-  "save declaration event" must {
-    "add an event to a declaration that previously had no events" in {
-
+  "get declaration" must {
+    "return a declaration that matches the input EORI and LRN " in {
       successfulAuthMock()
 
-      println(Json.toJson(successRequestBodySaveEvent))
+      val declarationToFind = successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber(lrn))
+      await(insert(declarationToFind))
+      await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber("LocalReference2"))))
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
+        .get)
+
+      result.status mustBe 200
+
+      result.json mustBe Json.toJson(declarationToFind)
+    }
+
+    "return a 404 if no declaration matching the input is found" in {
+      successfulAuthMock()
 
       await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber(lrn))))
+      await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber("LocalReference2"))))
 
-      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn/event")
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/LocalReference3")
         .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
-        .post[JsValue](Json.toJson(successRequestBodySaveEvent)))
+        .get)
 
-      result.status mustBe 201
-      val repositoryRecord = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference1")))
+      result.status mustBe 404
 
-      repositoryRecord.get.declarationEvents.get(CorrelationId("Correlation1")) mustBe Some(DeclarationEvent(MessageType.Amendment, None))
-      repositoryRecord.get.lrn mustBe LocalReferenceNumber(lrn)
-      repositoryRecord.get.eori mustBe eori
+      result.body mustBe "{\"code\":\"DECLARATION_NOT_FOUND\",\"message\":\"The request tried to update a record that doesn't exist\"}"
     }
 
 
@@ -168,9 +178,59 @@ class DeclarationsControllerISpec extends IntegrationBaseSpec with Injecting wit
 
       failingAuthMock()
 
-      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn/event")
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn")
         .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> "Bearer dummyBearer")
-        .post[JsValue](Json.toJson(successRequestBodySaveEvent)))
+        .get)
+
+      result.status mustBe 401
+
+      result.body mustBe "{\"code\":\"MISSING_SS_ENROLMENT\",\"message\":\"The consumer does not have the required authorisation to make this request\"}"
+    }
+  }
+
+  "get declarations" must {
+    "return declarations that match the input EORI" in {
+      successfulAuthMock()
+
+      val declarationToFind = successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber(lrn))
+      val declarationToFind2 = successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber("LocalReference2"))
+      await(insert(declarationToFind))
+      await(insert(declarationToFind2))
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
+        .get)
+
+      result.status mustBe 200
+
+      result.json mustBe Json.toJson(Seq(
+        declarationToFind,
+        declarationToFind2
+      ))
+    }
+
+    "return a 204 if no declaration matching the input is found" in {
+      successfulAuthMock()
+
+      await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber(lrn))))
+      await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber("LocalReference2"))))
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/GB205672212002")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
+        .get)
+
+
+      result.status mustBe 204
+    }
+
+
+    "return 401 if the user doesn't have the required enrolments" in {
+
+      failingAuthMock()
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> "Bearer dummyBearer")
+        .get)
 
       result.status mustBe 401
 

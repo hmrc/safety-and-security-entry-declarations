@@ -49,6 +49,11 @@ class DeclarationRepository @Inject() (
       Filters.equal("lrn", lrn.value)
     )
 
+  private def byEORI(eori: String): Bson =
+    Filters.and(
+      Filters.equal("eori", eori)
+    )
+
   private def set(eori: String, lrn: LocalReferenceNumber)(f: Declaration => Declaration): Future[Either[APIError, Unit]] = {
     collection.find(byEORIandLrn(eori, lrn)).headOption flatMap {
       case Some(result) =>
@@ -72,6 +77,10 @@ class DeclarationRepository @Inject() (
   def insertEvent(eori: String, lrn: LocalReferenceNumber, correlationId: CorrelationId, declarationEvent: DeclarationEvent): Future[Either[APIError, Unit]] = {
     set(eori, lrn){_.withDeclarationEvent(correlationId, declarationEvent)}
   }
+
+  def get(eori: String): Future[Seq[Declaration]] =
+    collection
+      .find(byEORI(eori)).toFuture()
 
   def get(eori: String, lrn: LocalReferenceNumber): Future[Option[Declaration]] =
     collection
