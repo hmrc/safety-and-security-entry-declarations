@@ -16,7 +16,7 @@
 
 package repositories
 
-import models.{APIError, CorrelationId, Declaration, DeclarationEvent, DeclarationNotfound, LocalReferenceNumber, UnknownErrorInsertingRecord}
+import models.{APIError, CorrelationId, Declaration, DeclarationEvent, DeclarationNotfound, LocalReferenceNumber, Outcome, UnknownErrorInsertingRecord}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import uk.gov.hmrc.mongo.MongoComponent
@@ -63,6 +63,15 @@ class DeclarationRepository @Inject() (
     }
   }
 
+  private def setOrError(eori: String, lrn: LocalReferenceNumber)(f: Declaration => Either[APIError, Declaration]): Future[Either[APIError, Unit]] = {
+    collection.find(byEORIandLrn(eori, lrn)).headOption flatMap {
+      case Some(result) =>
+        f(result).fold(error => Future(Left(error)), upsert)
+      case _ =>
+        Future(Left(DeclarationNotfound))
+    }
+  }
+
   def upsert(declaration: Declaration): Future[Either[APIError, Unit]] = {
     collection.replaceOne(
       filter = byEORIandLrn(declaration.eori, declaration.lrn),
@@ -72,6 +81,10 @@ class DeclarationRepository @Inject() (
       .recover {
         case _ => Left(UnknownErrorInsertingRecord)
       }
+  }
+
+  def setOutcome(eori: String, lrn: LocalReferenceNumber, outcome: Outcome): Future[Either[APIError, Unit]] = {
+    setOrError(eori, lrn){_.withOutcome(outcome)}
   }
 
   def insertEvent(eori: String, lrn: LocalReferenceNumber, correlationId: CorrelationId, declarationEvent: DeclarationEvent): Future[Either[APIError, Unit]] = {

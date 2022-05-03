@@ -18,7 +18,7 @@ package controllers
 
 
 import controllers.actions.IdentifierAction
-import models.{APIError, InvalidRequestBody, SaveDeclarationEventRequest, SubmitDeclarationRequest}
+import models.{APIError, InvalidRequestBody, Outcome, SaveDeclarationEventRequest, SubmitDeclarationRequest}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import services.DeclarationsService
@@ -41,6 +41,19 @@ class EventsController @Inject()(
         Future.successful(Status(InvalidRequestBody.httpCode)(Json.toJson(InvalidRequestBody: APIError)))
       }, requestModel => {
         declarationsService.saveDeclarationEvent(requestModel, eori, lrn).map {
+          case Right(_) => Created
+          case Left(error) => Status(error.httpCode)(Json.toJson(error))
+        }
+      })
+    }
+  }
+
+  def setOutcome(eori: String, lrn: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    authAction.withAuthAndEnrolmentCheck[JsValue](eori){ _ =>
+      request.body.validate[Outcome].fold(_ => {
+        Future.successful(Status(InvalidRequestBody.httpCode)(Json.toJson(InvalidRequestBody: APIError)))
+      }, requestModel => {
+        declarationsService.setOutcome(eori, lrn, requestModel).map {
           case Right(_) => Created
           case Left(error) => Status(error.httpCode)(Json.toJson(error))
         }

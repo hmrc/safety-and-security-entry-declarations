@@ -16,7 +16,7 @@
 
 package services
 
-import models.{APIError, Declaration, DeclarationEvent, DeclarationNotfound, InvalidLocalReferenceNumber, LocalReferenceNumber, SaveDeclarationEventRequest, SubmitDeclarationRequest}
+import models.{APIError, CorrelationId, Declaration, DeclarationEvent, DeclarationNotfound, InvalidLocalReferenceNumber, LocalReferenceNumber, Outcome, SaveDeclarationEventRequest, SubmitDeclarationRequest}
 import repositories.DeclarationRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -43,6 +43,14 @@ class DeclarationsService @Inject()(
       Future(Left(InvalidLocalReferenceNumber))
     )(localReferenceNumber =>
       declarationRepository.get(eori, localReferenceNumber).map(_.fold[Either[APIError, Declaration]](Left(DeclarationNotfound))(Right(_)))
+    )
+  }
+
+  def setOutcome(eori: String, lrn: String, outcome: Outcome)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[Either[APIError, Unit]] = {
+    LocalReferenceNumber.fromString(lrn).fold[Future[Either[APIError, Unit]]](
+      Future(Left(InvalidLocalReferenceNumber))
+    )(localReferenceNumber =>
+      declarationRepository.setOutcome(eori, localReferenceNumber, outcome)
     )
   }
 

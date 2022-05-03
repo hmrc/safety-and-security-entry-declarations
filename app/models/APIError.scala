@@ -36,6 +36,8 @@ case object EORIMismatch extends APIError(401, "EORI_MISMATCH", "The request con
 
 case object DeclarationNotfound extends APIError(404, "DECLARATION_NOT_FOUND", "The request tried to update a record that doesn't exist")
 
+case object DeclarationEventNotFound extends APIError(404, "DECLARATION_EVENT_NOT_FOUND", "The request tried to update a record that doesn't exist")
+
 
 object APIError {
   implicit val writes: Writes[APIError] = (

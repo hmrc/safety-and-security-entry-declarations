@@ -19,13 +19,18 @@ package controllers
 
 import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, urlMatching}
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import models.{CorrelationId, Declaration, DeclarationEvent, LocalReferenceNumber, MessageType, SaveDeclarationEventRequest, SubmitDeclarationRequest}
+import com.rabbitmq.client.AMQP.Basic.Reject
+import models.Outcome.{Accepted, Rejected}
+import models.{CorrelationId, Declaration, DeclarationEvent, LocalReferenceNumber, MessageType, MovementReferenceNumber, Outcome, RejectionReason, SaveDeclarationEventRequest, SubmitDeclarationRequest}
 import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.test.Injecting
 import repositories.DeclarationRepository
 import support.{IntegrationBaseSpec, WiremockHelper}
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+
+import java.time.Instant
+import scala.reflect.internal.util.ChromeTrace.EventType
 
 class EventsControllerISpec extends IntegrationBaseSpec with Injecting with DefaultPlayMongoRepositorySupport[Declaration] with WiremockHelper {
 
@@ -83,6 +88,20 @@ class EventsControllerISpec extends IntegrationBaseSpec with Injecting with Defa
     None
   )
 
+  val successRequestBodySetOutcomeAccepted: Outcome = Accepted(
+    CorrelationId("Correlation1"),
+    MessageType.Amendment,
+    Instant.now(),
+    MovementReferenceNumber("Movement1")
+  )
+
+  val successRequestBodySetOutcomeRejected: Outcome = Rejected(
+    CorrelationId("Correlation1"),
+    MessageType.Amendment,
+    Instant.now(),
+    RejectionReason(Some(1), "Rejected")
+  )
+
   val eori = "GB205672212000"
   val lrn = "LocalReference1"
 
@@ -130,6 +149,71 @@ class EventsControllerISpec extends IntegrationBaseSpec with Injecting with Defa
       failingAuthMock()
 
       val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn/event")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> "Bearer dummyBearer")
+        .post[JsValue](Json.toJson(successRequestBodySaveEvent)))
+
+      result.status mustBe 401
+
+      result.body mustBe "{\"code\":\"MISSING_SS_ENROLMENT\",\"message\":\"The consumer does not have the required authorisation to make this request\"}"
+    }
+  }
+
+  "set outcome" must {
+    "add an accepted outcome to a declaration" in {
+
+      successfulAuthMock()
+
+      await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber(lrn)).copy(declarationEvents = Map(CorrelationId("Correlation1") ->DeclarationEvent(MessageType.Amendment, None)))))
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn/outcome")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
+        .post[JsValue](Json.toJson(successRequestBodySetOutcomeAccepted)))
+
+      result.status mustBe 201
+      val repositoryRecord = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference1")))
+
+      repositoryRecord.get.declarationEvents.get(CorrelationId("Correlation1")) mustBe Some(DeclarationEvent(MessageType.Amendment, Some(successRequestBodySetOutcomeAccepted)))
+      repositoryRecord.get.lrn mustBe LocalReferenceNumber(lrn)
+      repositoryRecord.get.eori mustBe eori
+    }
+
+    "add a rejected to a declaration" in {
+
+      successfulAuthMock()
+
+      await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber(lrn)).copy(declarationEvents = Map(CorrelationId("Correlation1") ->DeclarationEvent(MessageType.Amendment, None)))))
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn/outcome")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
+        .post[JsValue](Json.toJson(successRequestBodySetOutcomeRejected)))
+
+      result.status mustBe 201
+      val repositoryRecord = await(repository.get("GB205672212000", LocalReferenceNumber("LocalReference1")))
+
+      repositoryRecord.get.declarationEvents.get(CorrelationId("Correlation1")) mustBe Some(DeclarationEvent(MessageType.Amendment, Some(successRequestBodySetOutcomeRejected)))
+      repositoryRecord.get.lrn mustBe LocalReferenceNumber(lrn)
+      repositoryRecord.get.eori mustBe eori
+    }
+
+    "return 404 when trying to add an event for non-existing declaration" in {
+
+      successfulAuthMock()
+      await(insert(successRequestBodySubmit.toDeclaration(eori, LocalReferenceNumber(lrn))))
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn/outcome")
+        .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> s"Bearer dummyBearer")
+        .post[JsValue](Json.toJson(successRequestBodySetOutcomeAccepted)))
+
+      result.status mustBe 404
+
+      result.body mustBe "{\"code\":\"DECLARATION_EVENT_NOT_FOUND\",\"message\":\"The request tried to update a record that doesn't exist\"}"
+    }
+
+
+    "return 401 if the user doesn't have the required enrolments" in {
+
+      failingAuthMock()
+
+      val result = await(buildRequest(s"/safety-and-security-entry-declarations/declaration/$eori/$lrn/outcome")
         .withHttpHeaders("Content-Type" -> "application/json", "Authorization" -> "Bearer dummyBearer")
         .post[JsValue](Json.toJson(successRequestBodySaveEvent)))
 

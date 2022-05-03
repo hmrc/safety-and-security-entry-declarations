@@ -4,3 +4,4 @@ POST       /declaration/:eori/:lrn                      controllers.Declarations
 GET        /declaration/:eori/:lrn                      controllers.DeclarationsController.getDeclaration(eori: String, lrn: String)
 GET        /declaration/:eori                           controllers.DeclarationsController.getDeclarations(eori: String)
 POST       /declaration/:eori/:lrn/event                controllers.EventsController.saveDeclarationEvent(eori: String, lrn: String)
+POST       /declaration/:eori/:lrn/outcome              controllers.EventsController.setOutcome(eori: String, lrn: String)

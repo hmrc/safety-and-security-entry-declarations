@@ -32,6 +32,12 @@ case class Declaration(
   def withDeclarationEvent(corrId: CorrelationId, event: DeclarationEvent): Declaration = copy(
     declarationEvents = declarationEvents + (corrId -> event)
   )
+
+  def withOutcome(outcome: Outcome): Either[APIError, Declaration] = declarationEvents.get(outcome.correlationId).map {
+      event =>
+        Right(copy(declarationEvents = declarationEvents.updated(outcome.correlationId, event.copy(outcome = Some(outcome)))))
+  }.getOrElse(Left(DeclarationEventNotFound))
+
 }
 
 object Declaration {
