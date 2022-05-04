@@ -17,9 +17,9 @@
 package models
 
 
-import java.time.Instant
-
 import play.api.libs.json._
+
+import java.time.Instant
 
 sealed trait Outcome {
   val correlationId: CorrelationId

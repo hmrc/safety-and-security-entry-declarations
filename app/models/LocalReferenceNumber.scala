@@ -27,7 +27,7 @@ object LocalReferenceNumber {
 
   private val pattern: Regex = "([A-Za-z0-9]{1,22})".r.anchored
 
-  private def fromString(input: String): Option[LocalReferenceNumber] = {
+  def fromString(input: String): Option[LocalReferenceNumber] = {
     input match {
       case pattern(lrn) => Some(LocalReferenceNumber(lrn))
       case _ => None

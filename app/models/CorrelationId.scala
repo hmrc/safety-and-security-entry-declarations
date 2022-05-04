@@ -16,10 +16,26 @@
 
 package models
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json._
 
 case class CorrelationId(id: String)
 
 object CorrelationId {
-  implicit val format: Format[CorrelationId] = Json.format[CorrelationId]
+
+  implicit val reads: Reads[CorrelationId] = new Reads[CorrelationId] {
+
+    override def reads(json: JsValue): JsResult[CorrelationId] =
+      json match {
+        case JsString(str) =>
+          JsSuccess(CorrelationId(str))
+        case _ =>
+          JsError("Invalid correlationId")
+      }
+  }
+
+  implicit val writes: Writes[CorrelationId] = new Writes[CorrelationId] {
+
+    override def writes(o: CorrelationId): JsValue =
+      JsString(o.id)
+  }
 }

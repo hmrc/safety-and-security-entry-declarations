@@ -16,7 +16,7 @@
 
 package models
 
-import play.api.libs.json.{JsObject, JsResult, JsSuccess, JsValue, Json, OFormat, OWrites, Reads, Writes, __}
+import play.api.libs.json._
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 import java.time.Instant
@@ -30,8 +30,18 @@ case class Declaration(
 ) {
 
   def withDeclarationEvent(corrId: CorrelationId, event: DeclarationEvent): Declaration = copy(
-    declarationEvents = declarationEvents + (corrId -> event)
+    declarationEvents = declarationEvents + (corrId -> event),
+    lastUpdated = Instant.now()
   )
+
+  def withOutcome(outcome: Outcome): Either[APIError, Declaration] = declarationEvents.get(outcome.correlationId).map {
+      event =>
+        Right(copy(
+          declarationEvents = declarationEvents.updated(outcome.correlationId, event.copy(outcome = Some(outcome))),
+          lastUpdated = Instant.now())
+        )
+  }.getOrElse(Left(DeclarationEventNotFound))
+
 }
 
 object Declaration {
